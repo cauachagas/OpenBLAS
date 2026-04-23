@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenBLAS Interactive Inputs - WebAssembly</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-a: #112a46;
+            --bg-b: #1c5d66;
+            --accent: #ffb703;
+            --accent-strong: #fb8500;
+            --panel: #f9fbfc;
+            --text: #1b2631;
+            --muted: #5c6b73;
+            --ok: #2a9d8f;
+            --err: #d62828;
+            --border: #d7e3ea;
+        }
+
+        body {
+            font-family: Georgia, "Times New Roman", serif;
+            background:
+                radial-gradient(circle at top left, rgba(255, 183, 3, 0.20), transparent 28%),
+                radial-gradient(circle at bottom right, rgba(251, 133, 0, 0.18), transparent 30%),
+                linear-gradient(135deg, var(--bg-a), var(--bg-b));
+            min-height: 100vh;
+            color: var(--text);
+            padding: 28px;
+        }
+
+        .shell {
+            max-width: 1180px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.96);
+            border-radius: 22px;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+            overflow: hidden;
+        }
+
+        .hero {
+            padding: 36px 40px 28px;
+            background: linear-gradient(120deg, rgba(17, 42, 70, 0.98), rgba(28, 93, 102, 0.96));
+            color: white;
+        }
+
+        .hero h1 {
+            font-size: 2.4rem;
+            margin-bottom: 10px;
+            letter-spacing: 0.02em;
+        }
+
+        .hero p {
+            max-width: 780px;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.86);
+        }
+
+        .hero-links {
+            margin-top: 18px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .hero-links a {
+            color: white;
+            text-decoration: none;
+            border: 1px solid rgba(255, 255, 255, 0.28);
+            border-radius: 999px;
+            padding: 10px 14px;
+            font-size: 0.95rem;
+        }
+
+        .content {
+            padding: 28px 32px 36px;
+        }
+
+        .status-box {
+            border-left: 5px solid var(--accent);
+            background: #fff7e8;
+            border-radius: 10px;
+            padding: 16px 18px;
+            margin-bottom: 24px;
+        }
+
+        .status-box.loading {
+            border-left-color: var(--accent);
+        }
+
+        .status-box.success {
+            border-left-color: var(--ok);
+            background: #ebfbf8;
+        }
+
+        .status-box.error {
+            border-left-color: var(--err);
+            background: #ffebeb;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 22px;
+        }
+
+        .panel {
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background: var(--panel);
+            padding: 22px;
+        }
+
+        .panel h2 {
+            margin-bottom: 8px;
+            font-size: 1.35rem;
+        }
+
+        .panel .summary {
+            color: var(--muted);
+            line-height: 1.5;
+            margin-bottom: 16px;
+        }
+
+        .field-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .field.full {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        input,
+        textarea,
+        select {
+            width: 100%;
+            border: 1px solid #bfd0d9;
+            border-radius: 10px;
+            background: white;
+            color: var(--text);
+            padding: 11px 12px;
+            font: inherit;
+        }
+
+        textarea {
+            min-height: 88px;
+            resize: vertical;
+            line-height: 1.45;
+        }
+
+        .hint {
+            color: var(--muted);
+            font-size: 0.86rem;
+            line-height: 1.4;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+        }
+
+        button {
+            border: 0;
+            border-radius: 999px;
+            padding: 12px 16px;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 22px rgba(0, 0, 0, 0.14);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+            color: #1b1b1b;
+        }
+
+        .secondary {
+            background: #eaf1f5;
+            color: var(--text);
+        }
+
+        .result {
+            margin-top: 16px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: white;
+            padding: 14px;
+            font-family: "Courier New", monospace;
+            white-space: pre-wrap;
+            min-height: 96px;
+        }
+
+        .examples {
+            margin-top: 26px;
+            border-radius: 16px;
+            background: #f4f7fa;
+            border: 1px solid var(--border);
+            padding: 20px 22px;
+        }
+
+        .examples h2 {
+            margin-bottom: 12px;
+        }
+
+        .examples ul {
+            padding-left: 18px;
+            line-height: 1.7;
+        }
+
+        .console {
+            margin-top: 24px;
+            background: #101820;
+            color: #d8f3dc;
+            border-radius: 14px;
+            padding: 16px;
+            font-family: "Courier New", monospace;
+            max-height: 280px;
+            overflow-y: auto;
+        }
+
+        .console p {
+            margin: 6px 0;
+        }
+
+        .console .error {
+            color: #ff8a8a;
+        }
+
+        .console .warn {
+            color: #ffd166;
+        }
+
+        @media (max-width: 760px) {
+            body {
+                padding: 14px;
+            }
+
+            .hero,
+            .content {
+                padding-left: 18px;
+                padding-right: 18px;
+            }
+
+            .field-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <section class="hero">
+            <h1>OpenBLAS with Interactive Inputs</h1>
+            <p>
+                This page uses the same WebAssembly module from the project but calls parameterized wrappers
+                so you can change vectors, scalars, and strides in real-time for DAXPY, DDOT, and DNRM2.
+            </p>
+            <div class="hero-links">
+                <a href="index.html">Open fixed tests page</a>
+                <a href="#examples">See input suggestions</a>
+            </div>
+        </section>
+
+        <section class="content">
+            <div class="status-box loading" id="status">
+                Loading interactive WebAssembly module...
+            </div>
+
+            <div class="grid">
+                <article class="panel">
+                    <h2>DAXPY</h2>
+                    <p class="summary">Calculates <strong>y = alpha * x + y</strong>. The vector <strong>y</strong> is updated within the WASM memory and returned in the result.</p>
+                    <div class="field-grid">
+                        <div class="field">
+                            <label for="daxpy-n">n</label>
+                            <input id="daxpy-n" type="number" min="1" value="5">
+                        </div>
+                        <div class="field">
+                            <label for="daxpy-alpha">alpha</label>
+                            <input id="daxpy-alpha" type="number" step="any" value="2">
+                        </div>
+                        <div class="field">
+                            <label for="daxpy-incx">incx</label>
+                            <input id="daxpy-incx" type="number" min="1" value="1">
+                        </div>
+                        <div class="field">
+                            <label for="daxpy-incy">incy</label>
+                            <input id="daxpy-incy" type="number" min="1" value="1">
+                        </div>
+                        <div class="field full">
+                            <label for="daxpy-x">x</label>
+                            <textarea id="daxpy-x">1, 2, 3, 4, 5</textarea>
+                            <div class="hint">Use comma, space, or newline. For stride greater than 1, provide enough elements.</div>
+                        </div>
+                        <div class="field full">
+                            <label for="daxpy-y">y</label>
+                            <textarea id="daxpy-y">1, 1, 1, 1, 1</textarea>
+                        </div>
+                    </div>
+                    <div class="actions">
+                        <button class="primary" id="run-daxpy" onclick="runDaxpy()" disabled>Run DAXPY</button>
+                        <button class="secondary" onclick="loadPreset('daxpy', 0)">Preset 1</button>
+                        <button class="secondary" onclick="loadPreset('daxpy', 1)">Preset 2</button>
+                    </div>
+                    <div class="result" id="result-daxpy">Waiting for execution.</div>
+                </article>
+
+                <article class="panel">
+                    <h2>DDOT</h2>
+                    <p class="summary">Calculates the dot product <strong>x · y</strong>. The result returns a single double-precision value.</p>
+                    <div class="field-grid">
+                        <div class="field">
+                            <label for="ddot-n">n</label>
+                            <input id="ddot-n" type="number" min="1" value="4">
+                        </div>
+                        <div class="field">
+                            <label for="ddot-incx">incx</label>
+                            <input id="ddot-incx" type="number" min="1" value="1">
+                        </div>
+                        <div class="field">
+                            <label for="ddot-incy">incy</label>
+                            <input id="ddot-incy" type="number" min="1" value="1">
+                        </div>
+                        <div class="field"></div>
+                        <div class="field full">
+                            <label for="ddot-x">x</label>
+                            <textarea id="ddot-x">1, 2, 3, 4</textarea>
+                        </div>
+                        <div class="field full">
+                            <label for="ddot-y">y</label>
+                            <textarea id="ddot-y">5, 6, 7, 8</textarea>
+                        </div>
+                    </div>
+                    <div class="actions">
+                        <button class="primary" id="run-ddot" onclick="runDdot()" disabled>Run DDOT</button>
+                        <button class="secondary" onclick="loadPreset('ddot', 0)">Preset 1</button>
+                        <button class="secondary" onclick="loadPreset('ddot', 1)">Preset 2</button>
+                    </div>
+                    <div class="result" id="result-ddot">Waiting for execution.</div>
+                </article>
+
+                <article class="panel">
+                    <h2>DNRM2</h2>
+                    <p class="summary">Calculates the Euclidean norm <strong>||x||₂</strong>. Useful for validating vector magnitude and stride behavior.</p>
+                    <div class="field-grid">
+                        <div class="field">
+                            <label for="dnrm2-n">n</label>
+                            <input id="dnrm2-n" type="number" min="1" value="3">
+                        </div>
+                        <div class="field">
+                            <label for="dnrm2-incx">incx</label>
+                            <input id="dnrm2-incx" type="number" min="1" value="1">
+                        </div>
+                        <div class="field full">
+                            <label for="dnrm2-x">x</label>
+                            <textarea id="dnrm2-x">2, 6, 3</textarea>
+                        </div>
+                    </div>
+                    <div class="actions">
+                        <button class="primary" id="run-dnrm2" onclick="runDnrm2()" disabled>Run DNRM2</button>
+                        <button class="secondary" onclick="loadPreset('dnrm2', 0)">Preset 1</button>
+                        <button class="secondary" onclick="loadPreset('dnrm2', 1)">Preset 2</button>
+                    </div>
+                    <div class="result" id="result-dnrm2">Waiting for execution.</div>
+                </article>
+            </div>
+
+            <section class="examples" id="examples">
+                <h2>Input Suggestions</h2>
+                <ul>
+                    <li><strong>Basic DAXPY:</strong> n=5, alpha=2, x=1,2,3,4,5, y=1,1,1,1,1. Expected result in y: 3,5,7,9,11.</li>
+                    <li><strong>DAXPY with negative values:</strong> n=4, alpha=-0.5, x=2,-4,6,-8, y=1,1,1,1. Good for checking signs and cancellation.</li>
+                    <li><strong>DAXPY with stride:</strong> n=3, incx=2, incy=2, x=1,99,2,99,3, y=4,77,5,77,6. Calculation only uses positions 0,2,4.</li>
+                    <li><strong>Classic DDOT:</strong> n=4, x=1,2,3,4, y=5,6,7,8. Expected result: 70.</li>
+                    <li><strong>Simple orthogonal DDOT:</strong> n=3, x=1,0,0, y=0,1,0. Expected result: 0.</li>
+                    <li><strong>DDOT with stride:</strong> n=3, incx=2, incy=2, x=1,99,2,99,3, y=4,77,5,77,6. Expected result: 32.</li>
+                    <li><strong>Standard DNRM2:</strong> n=3, x=2,6,3. Expected result: 7.</li>
+                    <li><strong>Pythagorean DNRM2:</strong> n=2, x=3,4. Expected result: 5.</li>
+                    <li><strong>DNRM2 with stride:</strong> n=2, incx=2, x=3,99,4. Expected result remains 5.</li>
+                </ul>
+            </section>
+
+            <div class="console" id="console"></div>
+        </section>
+    </div>
+
+    <script type="module" src="./interactive_inputs.js"></script>
+</body>
+</html>

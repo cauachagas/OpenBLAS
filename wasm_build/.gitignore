@@ -1,0 +1,22 @@
+# Build artifacts
+*.o
+*.a
+*.so
+*.wasm
+*.js
+test_native
+test.c.o
+
+# Directories
+lib/
+include/
+
+# IDE
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
