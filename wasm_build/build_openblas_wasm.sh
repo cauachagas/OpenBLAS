@@ -15,11 +15,9 @@ echo "[1] Building static library (.a)"
 make clean
 make \
   CC=emcc \
-  FC=emcc \
   HOSTCC=gcc \
   TARGET=WASM128_GENERIC \
-  ONLY_CBLAS=1 \
-  NOFORTRAN=2 \
+  NOFORTRAN=1 \
   NO_LAPACK=1 \
   NO_LAPACKE=1 \
   C_LAPACK=0 \
