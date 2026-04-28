@@ -247,6 +247,11 @@ NO_PARALLEL_MAKE=0
 endif
 GETARCH_FLAGS	+= -DNO_PARALLEL_MAKE=$(NO_PARALLEL_MAKE)
 
+ifndef MAKE_NB_JOBS
+ifneq (,$(patsubst -j%,%,$(filter -j%,$(MAKEFLAGS))))
+MAKE_NB_JOBS=-1
+endif
+endif
 ifdef MAKE_NB_JOBS
 GETARCH_FLAGS += -DMAKE_NB_JOBS=$(MAKE_NB_JOBS)
 endif
