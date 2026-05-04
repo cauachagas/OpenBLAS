@@ -196,29 +196,29 @@ jobs:
           - msystem: UCRT64
             idx: int32
             target-prefix: mingw-w64-ucrt-x86_64
-            fc-pkg: fc
+            fc-pkg: mingw-w64-ucrt-x86_64-fc
           - msystem: MINGW32
             idx: int32
             target-prefix: mingw-w64-i686
-            fc-pkg: fc
+            fc-pkg: 
           - msystem: CLANG64
             idx: int32
             target-prefix: mingw-w64-clang-x86_64
-            fc-pkg: fc
+            fc-pkg: mingw-w64-clang-x86_64-fc
           - msystem: UCRT64
             idx: int64
             idx64-flags: -DBINARY=64 -DINTERFACE64=1
             target-prefix: mingw-w64-ucrt-x86_64
-            fc-pkg: fc
+            fc-pkg: mingw-w64-ucrt-x86_64-fc
           - msystem: CLANG64
             idx: int64
             idx64-flags: -DBINARY=64 -DINTERFACE64=1
             target-prefix: mingw-w64-clang-x86_64
-            fc-pkg: fc
+            fc-pkg: mingw-w64-clang-x86_64-fc
           - msystem: UCRT64
             idx: int32
             target-prefix: mingw-w64-ucrt-x86_64
-            fc-pkg: fc
+            fc-pkg: mingw-w64-ucrt-x86_64-fc
             build-type: None
         exclude:
           - msystem: MINGW32
@@ -247,7 +247,7 @@ jobs:
           install: >-
             base-devel
             ${{ matrix.target-prefix }}-cc
-            ${{ matrix.target-prefix }}-${{ matrix.fc-pkg }}
+            ${{ matrix.fc-pkg }}
             ${{ matrix.target-prefix }}-cmake
             ${{ matrix.target-prefix }}-ninja
             ${{ matrix.target-prefix }}-ccache
@@ -404,4 +404,55 @@ jobs:
           make -j${nproc}
           make -j${nproc} lapack-test
 
+  neoverse_n1_build:
+    if: "github.repository == 'OpenMathLib/OpenBLAS'"
+    runs-on: ubuntu-24.04-arm
 
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc gfortran make
+
+      - name: Build OpenBLAS
+        run: |
+          make -j${nproc} TARGET=NEOVERSEN1
+          make -j${nproc} TARGET=NEOVERSEN1 lapack-test
+
+  neoverse_n1_omp_build:
+    if: "github.repository == 'OpenMathLib/OpenBLAS'"
+    runs-on: ubuntu-24.04-arm
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc gfortran make
+
+      - name: Build OpenBLAS
+        run: |
+          make -j${nproc} TARGET=NEOVERSEN1 USE_OPENMP=1
+  
+  neoverse_n1_ilp64_build:
+    if: "github.repository == 'OpenMathLib/OpenBLAS'"
+    runs-on: ubuntu-24.04-arm
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc gfortran make
+
+      - name: Build OpenBLAS
+        run: |
+          make -j${nproc} TARGET=NEOVERSEN1 INTERFACE64=1
+          make -j${nproc} TARGET=NEOVERSEN1 INTERFACE64=1 lapack-test
