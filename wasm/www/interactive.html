@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenBLAS Interactive Playground - WebAssembly</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            min-height: 100vh;
+            color: #f1f5f9;
+            padding: 24px;
+        }
+
+        .container {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 16px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            max-width: 1080px;
+            margin: 0 auto;
+            padding: 36px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 32px;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 24px;
+        }
+
+        h1 {
+            color: #f8fafc;
+            font-size: 2.2rem;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            color: #94a3b8;
+            font-size: 1.05rem;
+        }
+
+        .nav-links {
+            margin-top: 16px;
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        .nav-links a {
+            color: #38bdf8;
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+            padding: 6px 14px;
+            border-radius: 8px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            transition: all 0.2s;
+        }
+
+        .nav-links a:hover {
+            background: #38bdf8;
+            color: #0f172a;
+        }
+
+        .status-box {
+            background: #0f172a;
+            border-left: 4px solid #38bdf8;
+            padding: 16px;
+            margin-bottom: 28px;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .status-box.success {
+            border-left-color: #22c55e;
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        .status-box.error {
+            border-left-color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .operations-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 28px;
+            margin-bottom: 32px;
+        }
+
+        .op-card {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .op-card h3 {
+            font-size: 1.3rem;
+            color: #38bdf8;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .op-card .formula {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .input-group label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #cbd5e1;
+        }
+
+        input[type="text"], input[type="number"] {
+            background: #1e293b;
+            border: 1px solid #475569;
+            border-radius: 6px;
+            color: #f8fafc;
+            padding: 8px 12px;
+            font-size: 0.95rem;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 14px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 9px 18px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        button:hover:not(:disabled) {
+            background: #1d4ed8;
+        }
+
+        button:disabled {
+            background: #475569;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        button.preset {
+            background: #334155;
+            color: #cbd5e1;
+        }
+
+        button.preset:hover:not(:disabled) {
+            background: #475569;
+            color: white;
+        }
+
+        pre.result-box {
+            background: #020617;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 16px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            color: #4ade80;
+            white-space: pre-wrap;
+            min-height: 48px;
+        }
+
+        .console-section h2 {
+            color: #e2e8f0;
+            font-size: 1.2rem;
+            margin-bottom: 12px;
+        }
+
+        #console {
+            background: #020617;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            padding: 14px;
+            height: 160px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
+
+        #console p {
+            margin-bottom: 4px;
+            color: #94a3b8;
+        }
+        #console p.info { color: #38bdf8; }
+        #console p.error { color: #f87171; }
+        #console p.warn { color: #fbbf24; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>OpenBLAS Interactive Playground</h1>
+            <p class="subtitle">Execute custom vector and matrix operations live in WebAssembly</p>
+            <div class="nav-links">
+                <a href="index.html">← Numerical Test Suite</a>
+                <a href="interactive.html" style="background:#38bdf8; color:#0f172a;">Interactive BLAS Playground</a>
+            </div>
+        </header>
+
+        <div id="status" class="status-box">Loading OpenBLAS WebAssembly module...</div>
+
+        <div class="operations-grid">
+            <!-- DAXPY -->
+            <div class="op-card">
+                <h3>DAXPY (Double Precision)</h3>
+                <div class="formula">Computes <strong>y := α·x + y</strong></div>
+                <div class="form-grid">
+                    <div class="input-group">
+                        <label>n (elements)</label>
+                        <input id="daxpy-n" type="number" value="5" min="1">
+                    </div>
+                    <div class="input-group">
+                        <label>α (scalar)</label>
+                        <input id="daxpy-alpha" type="number" value="2.0" step="any">
+                    </div>
+                    <div class="input-group">
+                        <label>incx (stride x)</label>
+                        <input id="daxpy-incx" type="number" value="1" min="1">
+                    </div>
+                    <div class="input-group">
+                        <label>incy (stride y)</label>
+                        <input id="daxpy-incy" type="number" value="1" min="1">
+                    </div>
+                </div>
+                <div class="input-group" style="margin-bottom:12px;">
+                    <label>Vector x</label>
+                    <input id="daxpy-x" type="text" value="1, 2, 3, 4, 5">
+                </div>
+                <div class="input-group">
+                    <label>Vector y</label>
+                    <input id="daxpy-y" type="text" value="1, 1, 1, 1, 1">
+                </div>
+                <div class="actions">
+                    <button id="run-daxpy" onclick="runDaxpy()" disabled>Compute DAXPY</button>
+                    <button class="preset" onclick="loadPreset('daxpy', 0)">Preset 1</button>
+                    <button class="preset" onclick="loadPreset('daxpy', 1)">Preset 2 (Strided)</button>
+                </div>
+                <pre class="result-box" id="result-daxpy">Result will appear here...</pre>
+            </div>
+
+            <!-- DDOT -->
+            <div class="op-card">
+                <h3>DDOT (Double Precision)</h3>
+                <div class="formula">Computes dot product <strong>result := x · y</strong></div>
+                <div class="form-grid">
+                    <div class="input-group">
+                        <label>n (elements)</label>
+                        <input id="ddot-n" type="number" value="4" min="1">
+                    </div>
+                    <div class="input-group">
+                        <label>incx (stride x)</label>
+                        <input id="ddot-incx" type="number" value="1" min="1">
+                    </div>
+                    <div class="input-group">
+                        <label>incy (stride y)</label>
+                        <input id="ddot-incy" type="number" value="1" min="1">
+                    </div>
+                </div>
+                <div class="input-group" style="margin-bottom:12px;">
+                    <label>Vector x</label>
+                    <input id="ddot-x" type="text" value="1, 2, 3, 4">
+                </div>
+                <div class="input-group">
+                    <label>Vector y</label>
+                    <input id="ddot-y" type="text" value="5, 6, 7, 8">
+                </div>
+                <div class="actions">
+                    <button id="run-ddot" onclick="runDdot()" disabled>Compute DDOT</button>
+                    <button class="preset" onclick="loadPreset('ddot', 0)">Preset 1</button>
+                    <button class="preset" onclick="loadPreset('ddot', 1)">Preset 2 (Strided)</button>
+                </div>
+                <pre class="result-box" id="result-ddot">Result will appear here...</pre>
+            </div>
+
+            <!-- DNRM2 -->
+            <div class="op-card">
+                <h3>DNRM2 (Double Precision)</h3>
+                <div class="formula">Computes Euclidean norm <strong>result := ‖x‖₂</strong></div>
+                <div class="form-grid">
+                    <div class="input-group">
+                        <label>n (elements)</label>
+                        <input id="dnrm2-n" type="number" value="3" min="1">
+                    </div>
+                    <div class="input-group">
+                        <label>incx (stride x)</label>
+                        <input id="dnrm2-incx" type="number" value="1" min="1">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Vector x</label>
+                    <input id="dnrm2-x" type="text" value="2, 6, 3">
+                </div>
+                <div class="actions">
+                    <button id="run-dnrm2" onclick="runDnrm2()" disabled>Compute DNRM2</button>
+                    <button class="preset" onclick="loadPreset('dnrm2', 0)">Preset 1</button>
+                    <button class="preset" onclick="loadPreset('dnrm2', 1)">Preset 2 (3-4-5)</button>
+                </div>
+                <pre class="result-box" id="result-dnrm2">Result will appear here...</pre>
+            </div>
+        </div>
+
+        <div class="console-section">
+            <h2>Activity Log</h2>
+            <div id="console"></div>
+        </div>
+    </div>
+
+    <script type="module" src="interactive.js"></script>
+</body>
+</html>
