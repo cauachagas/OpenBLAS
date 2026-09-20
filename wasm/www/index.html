@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenBLAS CBLAS Test - WebAssembly</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            min-height: 100vh;
+            color: #f1f5f9;
+            padding: 24px;
+        }
+        
+        .container {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 16px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            max-width: 1080px;
+            margin: 0 auto;
+            padding: 36px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 32px;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 24px;
+        }
+        
+        h1 {
+            color: #f8fafc;
+            font-size: 2.2rem;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+        
+        .subtitle {
+            color: #94a3b8;
+            font-size: 1.05rem;
+        }
+
+        .nav-links {
+            margin-top: 16px;
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        .nav-links a {
+            color: #38bdf8;
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+            padding: 6px 14px;
+            border-radius: 8px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            transition: all 0.2s;
+        }
+
+        .nav-links a:hover {
+            background: #38bdf8;
+            color: #0f172a;
+        }
+        
+        .status-box {
+            background: #0f172a;
+            border-left: 4px solid #38bdf8;
+            padding: 16px;
+            margin-bottom: 28px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            font-size: 1rem;
+        }
+
+        .status-box.success {
+            border-left-color: #22c55e;
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        .status-box.error {
+            border-left-color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+        
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        button:hover:not(:disabled) {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+        }
+        
+        button:disabled {
+            background: #475569;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        button.secondary {
+            background: #334155;
+            color: #e2e8f0;
+        }
+        
+        button.secondary:hover:not(:disabled) {
+            background: #475569;
+        }
+
+        .tests-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        
+        .test-card {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 20px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        
+        .level-badge {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 4px 8px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            width: fit-content;
+        }
+        
+        .test-card.level1 .level-badge { background: #0369a1; color: #e0f2fe; }
+        .test-card.level2 .level-badge { background: #047857; color: #d1fae5; }
+        .test-card.level3 .level-badge { background: #b45309; color: #fef3c7; }
+        .test-card.complex1 .level-badge { background: #6d28d9; color: #ede9fe; }
+        .test-card.complex2 .level-badge { background: #be185d; color: #fce7f3; }
+        .test-card.complex3 .level-badge { background: #4338ca; color: #e0e7ff; }
+        
+        .test-card h3 {
+            color: #f8fafc;
+            font-size: 1.15rem;
+            margin-bottom: 8px;
+        }
+        
+        .test-card p {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            margin-bottom: 14px;
+            line-height: 1.4;
+        }
+        
+        .result {
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-family: monospace;
+            margin-bottom: 12px;
+            word-break: break-all;
+        }
+        
+        .result.pending {
+            background: #1e293b;
+            color: #94a3b8;
+        }
+        
+        .result.success {
+            background: rgba(34, 197, 94, 0.15);
+            color: #4ade80;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+        
+        .result.error {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        
+        .test-card button {
+            width: 100%;
+            padding: 8px;
+            font-size: 0.85rem;
+        }
+        
+        .console-section h2 {
+            color: #e2e8f0;
+            font-size: 1.2rem;
+            margin-bottom: 12px;
+        }
+        
+        #console {
+            background: #020617;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            padding: 14px;
+            height: 180px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
+        
+        #console p {
+            margin-bottom: 4px;
+            color: #94a3b8;
+        }
+        
+        #console p.info { color: #38bdf8; }
+        #console p.success { color: #4ade80; }
+        #console p.error { color: #f87171; }
+        #console p.warn { color: #fbbf24; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>OpenBLAS WebAssembly Suite</h1>
+            <p class="subtitle">Numerical accuracy and benchmark suite compiled with Emscripten (WASM128_GENERIC)</p>
+            <div class="nav-links">
+                <a href="index.html" style="background:#38bdf8; color:#0f172a;">Numerical Test Suite</a>
+                <a href="interactive.html">Interactive BLAS Playground →</a>
+            </div>
+        </header>
+        
+        <div id="status" class="status-box">
+            <p>Initializing WebAssembly environment...</p>
+        </div>
+        
+        <div class="controls">
+            <button id="runBtn" onclick="runAllTests()" disabled>▶ Run All Tests</button>
+            <button class="secondary" onclick="clearResults()">↺ Clear Results</button>
+        </div>
+        
+        <div class="tests-grid" id="tests-grid"></div>
+        
+        <div class="console-section">
+            <h2>Execution Log</h2>
+            <div id="console"></div>
+        </div>
+    </div>
+    
+    <script type="module" src="index.js"></script>
+</body>
+</html>
