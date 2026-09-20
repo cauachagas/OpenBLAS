@@ -1,0 +1,10 @@
+# OpenBLAS WebAssembly build artifacts
+lib/
+include/
+dist/
+*.o
+*.a
+*.wasm
+*.mjs
+test_native
+.DS_Store
